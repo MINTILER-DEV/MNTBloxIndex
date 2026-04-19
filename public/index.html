@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MNTBloxIndex</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">MNTBloxIndex</p>
+        <h1>Search song codes and direct audio URLs</h1>
+        <p class="lede">
+          The public site is powered by a JSON song index. Use a six-letter code to find the real audio URL,
+          and keep link submissions tied to the device ID that submitted them.
+        </p>
+      </section>
+
+      <section class="panel panel-grid">
+        <div>
+          <label class="field-label" for="search-input">Search songs, artists, uploaders, or codes</label>
+          <div class="inline-form">
+            <input id="search-input" type="search" placeholder="MKSDAF, artist name, song title">
+            <button id="refresh-button" type="button">Refresh</button>
+          </div>
+        </div>
+
+        <div class="api-box">
+          <p class="field-label">Read-only Pages build</p>
+          <p>
+            Search works on GitHub Pages. Upload and delete require the Node API from this repo to be running somewhere.
+          </p>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="results-head">
+          <div>
+            <h2>Index Results</h2>
+            <p id="result-summary">Loading songs...</p>
+          </div>
+        </div>
+        <div id="results" class="results-grid"></div>
+      </section>
+
+      <section class="panel">
+        <div class="results-head">
+          <div>
+            <h2>Submit Audio Link</h2>
+            <p>Song name, artist, and a direct audio URL are required. Uploader name is optional. The API generates a six-letter code.</p>
+          </div>
+        </div>
+
+        <form id="upload-form" class="upload-form">
+          <label>
+            <span class="field-label">Direct audio URL</span>
+            <input id="audio-url" name="audioUrl" type="url" placeholder="https://example.com/song.mp3" required>
+          </label>
+
+          <label>
+            <span class="field-label">Song name</span>
+            <input id="song-name" name="songName" type="text" maxlength="120" required>
+          </label>
+
+          <label>
+            <span class="field-label">Artist</span>
+            <input id="artist" name="artist" type="text" maxlength="120" required>
+          </label>
+
+          <label>
+            <span class="field-label">Uploader name</span>
+            <input id="uploader-name" name="uploaderName" type="text" maxlength="80">
+          </label>
+
+          <label>
+            <span class="field-label">Device ID</span>
+            <input id="device-id" name="deviceId" type="text" maxlength="64" placeholder="Required for app-side delete control">
+          </label>
+
+          <div class="inline-form">
+            <button id="upload-button" type="submit">Submit Link</button>
+            <p id="upload-status" class="status-text"></p>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <template id="result-template">
+      <article class="result-card">
+        <div class="result-top">
+          <span class="result-code"></span>
+          <a class="result-link" target="_blank" rel="noreferrer">Open audio</a>
+        </div>
+        <h3 class="result-title"></h3>
+        <p class="result-meta"></p>
+        <p class="result-uploader"></p>
+      </article>
+    </template>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
