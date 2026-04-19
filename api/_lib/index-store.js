@@ -71,6 +71,17 @@ function hasBlobToken()
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN?.trim());
 }
 
+function isVercelDeployment()
+{
+  const vercelEnvironment = `${process.env.VERCEL_ENV ?? ""}`.trim().toLowerCase();
+  return vercelEnvironment === "production" || vercelEnvironment === "preview";
+}
+
+function canUseLocalFallback()
+{
+  return !hasBlobToken() && !isVercelDeployment();
+}
+
 async function readSnapshotAsync()
 {
   return hasBlobToken()
@@ -161,6 +172,12 @@ async function writeSnapshotAsync(index, etag)
     return;
   }
 
+  if (isVercelDeployment())
+  {
+    throw new Error(
+      "This Vercel deployment is read-only because BLOB_READ_WRITE_TOKEN is missing. Connect a Vercel Blob store to this project before using uploads or deletes.");
+  }
+
   await fs.mkdir(path.dirname(localIndexPath), { recursive: true });
   await fs.writeFile(localIndexPath, JSON.stringify(index, null, 2) + "\n", "utf8");
 }
@@ -175,7 +192,12 @@ async function readLocalSnapshotAsync()
   catch
   {
     const empty = createEmptyIndexDocument();
-    await writeSnapshotAsync(empty, null);
+
+    if (canUseLocalFallback())
+    {
+      await writeSnapshotAsync(empty, null);
+    }
+
     return { index: empty, etag: null };
   }
 }

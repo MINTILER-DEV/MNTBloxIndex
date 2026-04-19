@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MNTBloxIndex Search</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="shell shell--wide">
+      <header class="site-header">
+        <div>
+          <p class="eyebrow">MNTBloxIndex</p>
+          <h1>Search codes, artists, uploaders, and source hosts.</h1>
+        </div>
+
+        <nav class="site-nav" aria-label="Primary">
+          <a class="nav-link" href="./index.html">Upload</a>
+          <a class="nav-link nav-link--active" href="./search.html">Search</a>
+        </nav>
+      </header>
+
+      <section class="panel">
+        <div class="section-head">
+          <div>
+            <h2>Filters</h2>
+            <p>Search text plus dropdown filters for artist, uploader, host, and sort order.</p>
+          </div>
+          <div class="action-row action-row--tight">
+            <button id="clear-filters-button" type="button" class="button-secondary">Clear</button>
+            <button id="refresh-button" type="button">Refresh</button>
+          </div>
+        </div>
+
+        <div class="filter-grid">
+          <label class="field field--wide">
+            <span class="field-label">Search</span>
+            <input id="search-input" type="search" placeholder="song code, title, artist, uploader, or audio host">
+          </label>
+
+          <label class="field">
+            <span class="field-label">Artist</span>
+            <select id="artist-filter"></select>
+          </label>
+
+          <label class="field">
+            <span class="field-label">Uploader</span>
+            <select id="uploader-filter"></select>
+          </label>
+
+          <label class="field">
+            <span class="field-label">Source host</span>
+            <select id="host-filter"></select>
+          </label>
+
+          <label class="field">
+            <span class="field-label">Sort</span>
+            <select id="sort-filter">
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="title">Title A-Z</option>
+              <option value="artist">Artist A-Z</option>
+              <option value="code">Code A-Z</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <div>
+            <h2>Search Results</h2>
+            <p id="result-summary">Loading songs...</p>
+          </div>
+        </div>
+
+        <div id="results" class="song-grid"></div>
+      </section>
+    </main>
+
+    <script type="module" src="./search.js"></script>
+  </body>
+</html>

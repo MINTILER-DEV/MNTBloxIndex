@@ -37,4 +37,10 @@ npx vercel dev
 3. Add the Blob read-write token to the project environment so the API routes can update the index.
 4. Deploy.
 
+### Important
+
+- `public/data/index.json` is only a local-development fallback.
+- On deployed Vercel Functions, the app bundle under `/var/task` is read-only, so uploads and deletes require `BLOB_READ_WRITE_TOKEN`.
+- If that token is missing in `preview` or `production`, reads can still work, but write operations will now return a clear configuration error instead of trying to write to the read-only filesystem.
+
 The frontend and API are designed to live on the same Vercel project, so the public site can call same-origin `/api/...` routes without CORS setup.

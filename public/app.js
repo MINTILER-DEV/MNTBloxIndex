@@ -1,31 +1,24 @@
-const searchInput = document.querySelector("#search-input");
-const refreshButton = document.querySelector("#refresh-button");
-const resultSummary = document.querySelector("#result-summary");
-const resultsContainer = document.querySelector("#results");
-const resultTemplate = document.querySelector("#result-template");
+import {
+  createSongCard,
+  fetchSongs,
+  getStoredDeviceId,
+  sortSongs,
+  storeDeviceId,
+  submitSong
+} from "./site.js";
+
 const uploadForm = document.querySelector("#upload-form");
 const uploadStatus = document.querySelector("#upload-status");
 const deviceIdInput = document.querySelector("#device-id");
+const resultsContainer = document.querySelector("#results");
+const resultSummary = document.querySelector("#result-summary");
 
-let songs = [];
-
-const storedDeviceId = localStorage.getItem("mntbloxindex-device-id");
-if (storedDeviceId && deviceIdInput)
+if (deviceIdInput)
 {
-  deviceIdInput.value = storedDeviceId;
+  deviceIdInput.value = getStoredDeviceId();
 }
 
 await refreshSongs();
-
-searchInput.addEventListener("input", () =>
-{
-  renderSongs(filterSongs(searchInput.value));
-});
-
-refreshButton.addEventListener("click", async () =>
-{
-  await refreshSongs();
-});
 
 uploadForm.addEventListener("submit", async (event) =>
 {
@@ -33,33 +26,19 @@ uploadForm.addEventListener("submit", async (event) =>
 
   uploadStatus.textContent = "Submitting...";
   const body = Object.fromEntries(new FormData(uploadForm).entries());
-  localStorage.setItem("mntbloxindex-device-id", `${body.deviceId ?? ""}`.trim());
+  storeDeviceId(body.deviceId);
 
   try
   {
-    const response = await fetch("/api/upload", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(body)
-    });
-
-    const responseBody = await response.json();
-    if (!response.ok)
-    {
-      throw new Error(responseBody.error || "Link submission failed.");
-    }
-
+    const uploadedSong = await submitSong(body);
+    uploadStatus.textContent = `Saved ${uploadedSong.songName} as ${uploadedSong.code}.`;
     uploadForm.reset();
 
-    const persistedDeviceId = `${body.deviceId ?? ""}`.trim();
-    if (persistedDeviceId && deviceIdInput)
+    if (deviceIdInput)
     {
-      deviceIdInput.value = persistedDeviceId;
+      deviceIdInput.value = getStoredDeviceId();
     }
 
-    uploadStatus.textContent = `Saved ${responseBody.songName} as ${responseBody.code}.`;
     await refreshSongs();
   }
   catch (error)
@@ -76,87 +55,42 @@ async function refreshSongs()
 
   try
   {
-    const response = await fetch("/api/index", { cache: "no-store" });
-    if (!response.ok)
-    {
-      throw new Error("Could not load the song index API.");
-    }
-
-    const body = await response.json();
-    songs = Array.isArray(body.songs) ? body.songs : [];
-    renderSongs(filterSongs(searchInput.value));
+    const songs = await fetchSongs();
+    const recentSongs = sortSongs(songs, "newest").slice(0, 8);
+    renderSongs(recentSongs);
+    resultSummary.textContent = `${recentSongs.length} recent song${recentSongs.length === 1 ? "" : "s"}`;
   }
   catch (error)
   {
-    songs = [];
-    resultsContainer.innerHTML = `<div class="empty-state">${escapeHtml(error instanceof Error ? error.message : "Index load failed.")}</div>`;
+    resultsContainer.innerHTML = "";
+    const emptyState = document.createElement("div");
+    emptyState.className = "empty-state";
+    emptyState.textContent = error instanceof Error
+      ? error.message
+      : "Index load failed.";
+    resultsContainer.append(emptyState);
     resultSummary.textContent = "0 songs";
   }
-}
-
-function filterSongs(query)
-{
-  const trimmedQuery = `${query || ""}`.trim().toLowerCase();
-  if (!trimmedQuery)
-  {
-    return songs;
-  }
-
-  return songs.filter((song) =>
-  {
-    return [song.code, song.songName, song.artist, song.uploaderName, song.audioUrl]
-      .filter(Boolean)
-      .some((value) => `${value}`.toLowerCase().includes(trimmedQuery));
-  });
 }
 
 function renderSongs(entries)
 {
   resultsContainer.innerHTML = "";
-  resultSummary.textContent = `${entries.length} song${entries.length === 1 ? "" : "s"}`;
 
   if (entries.length === 0)
   {
-    resultsContainer.innerHTML = `<div class="empty-state">No songs matched that search yet.</div>`;
+    const emptyState = document.createElement("div");
+    emptyState.className = "empty-state";
+    emptyState.textContent = "No songs are in the index yet.";
+    resultsContainer.append(emptyState);
     return;
   }
 
   const fragment = document.createDocumentFragment();
-
   for (const song of entries)
   {
-    const node = resultTemplate.content.cloneNode(true);
-    node.querySelector(".result-code").textContent = song.code;
-    node.querySelector(".result-title").textContent = song.songName;
-    node.querySelector(".result-meta").textContent = `${song.artist}${song.uploadedAt ? ` - ${formatDate(song.uploadedAt)}` : ""}`;
-    node.querySelector(".result-uploader").textContent = song.uploaderName
-      ? `Uploaded by ${song.uploaderName}`
-      : "Uploader name not provided";
-
-    const link = node.querySelector(".result-link");
-    link.href = song.audioUrl;
-
-    fragment.appendChild(node);
+    fragment.append(createSongCard(song, { compact: true }));
   }
 
-  resultsContainer.appendChild(fragment);
-}
-
-function formatDate(value)
-{
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime()))
-  {
-    return value;
-  }
-
-  return parsed.toLocaleDateString();
-}
-
-function escapeHtml(value)
-{
-  return `${value}`
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
+  resultsContainer.append(fragment);
 }
