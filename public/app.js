@@ -5,8 +5,15 @@ const resultsContainer = document.querySelector("#results");
 const resultTemplate = document.querySelector("#result-template");
 const uploadForm = document.querySelector("#upload-form");
 const uploadStatus = document.querySelector("#upload-status");
+const deviceIdInput = document.querySelector("#device-id");
 
 let songs = [];
+
+const storedDeviceId = localStorage.getItem("mntbloxindex-device-id");
+if (storedDeviceId && deviceIdInput)
+{
+  deviceIdInput.value = storedDeviceId;
+}
 
 await refreshSongs();
 
@@ -26,10 +33,11 @@ uploadForm.addEventListener("submit", async (event) =>
 
   uploadStatus.textContent = "Submitting...";
   const body = Object.fromEntries(new FormData(uploadForm).entries());
+  localStorage.setItem("mntbloxindex-device-id", `${body.deviceId ?? ""}`.trim());
 
   try
   {
-    const response = await fetch("./api/upload", {
+    const response = await fetch("/api/upload", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -44,6 +52,13 @@ uploadForm.addEventListener("submit", async (event) =>
     }
 
     uploadForm.reset();
+
+    const persistedDeviceId = `${body.deviceId ?? ""}`.trim();
+    if (persistedDeviceId && deviceIdInput)
+    {
+      deviceIdInput.value = persistedDeviceId;
+    }
+
     uploadStatus.textContent = `Saved ${responseBody.songName} as ${responseBody.code}.`;
     await refreshSongs();
   }
@@ -51,7 +66,7 @@ uploadForm.addEventListener("submit", async (event) =>
   {
     uploadStatus.textContent = error instanceof Error
       ? error.message
-      : "Link submission failed. The GitHub Pages build is read-only unless a live API is available.";
+      : "Link submission failed.";
   }
 });
 
@@ -61,10 +76,10 @@ async function refreshSongs()
 
   try
   {
-    const response = await fetch("./data/index.json", { cache: "no-store" });
+    const response = await fetch("/api/index", { cache: "no-store" });
     if (!response.ok)
     {
-      throw new Error("Could not load the JSON song index.");
+      throw new Error("Could not load the song index API.");
     }
 
     const body = await response.json();
