@@ -1,4 +1,5 @@
 import {
+  autofillFromRobloxSoundId,
   createSongCard,
   fetchSongs,
   getStoredDeviceId,
@@ -12,6 +13,12 @@ const uploadStatus = document.querySelector("#upload-status");
 const deviceIdInput = document.querySelector("#device-id");
 const resultsContainer = document.querySelector("#results");
 const resultSummary = document.querySelector("#result-summary");
+const audioUrlInput = document.querySelector("#audio-url");
+const songNameInput = document.querySelector("#song-name");
+const artistInput = document.querySelector("#artist");
+const robloxAssetIdInput = document.querySelector("#roblox-asset-id");
+const autofillRobloxButton = document.querySelector("#autofill-roblox-button");
+const autofillStatus = document.querySelector("#autofill-status");
 
 if (deviceIdInput)
 {
@@ -19,6 +26,26 @@ if (deviceIdInput)
 }
 
 await refreshSongs();
+
+autofillRobloxButton.addEventListener("click", async () =>
+{
+  autofillStatus.textContent = "Looking up Roblox sound...";
+
+  try
+  {
+    const autofill = await autofillFromRobloxSoundId(robloxAssetIdInput.value);
+    audioUrlInput.value = autofill.audioUrl;
+    songNameInput.value = autofill.songName;
+    artistInput.value = autofill.artist;
+    autofillStatus.textContent = `Filled ${autofill.songName} by ${autofill.artist}.`;
+  }
+  catch (error)
+  {
+    autofillStatus.textContent = error instanceof Error
+      ? error.message
+      : "Roblox sound lookup failed.";
+  }
+});
 
 uploadForm.addEventListener("submit", async (event) =>
 {

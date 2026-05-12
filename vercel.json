@@ -5,6 +5,10 @@
     {
       "source": "/api/songs/:code",
       "destination": "/api/songs/[code]"
+    },
+    {
+      "source": "/api/roblox-sounds/:id",
+      "destination": "/api/roblox-sounds/[id]"
     }
   ],
   "headers": [

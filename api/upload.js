@@ -15,15 +15,21 @@ export async function POST(request)
     return error(400, "Request body must be valid JSON.");
   }
 
+  const linkedAssetId = `${body?.linkedAssetId ?? ""}`.trim().replace(/^rbxassetid:\/\//i, "");
   const audioUrl = `${body?.audioUrl ?? ""}`.trim();
   const songName = `${body?.songName ?? ""}`.trim();
   const artist = `${body?.artist ?? ""}`.trim();
   const uploaderName = `${body?.uploaderName ?? ""}`.trim();
   const deviceId = `${body?.deviceId ?? ""}`.trim();
 
-  if (!audioUrl || !songName || !artist || !deviceId)
+  if (!linkedAssetId || !audioUrl || !songName || !artist || !deviceId)
   {
-    return error(400, "audioUrl, songName, artist, and deviceId are required.");
+    return error(400, "linkedAssetId, audioUrl, songName, artist, and deviceId are required.");
+  }
+
+  if (!/^\d+$/.test(linkedAssetId))
+  {
+    return error(400, "Linked Roblox sound ID must contain digits only.");
   }
 
   const normalizedAudioUrl = await validateAudioUrlAsync(audioUrl);
@@ -33,6 +39,7 @@ export async function POST(request)
   }
 
   const result = await createSongAsync({
+    linkedAssetId,
     audioUrl: normalizedAudioUrl,
     songName,
     artist,

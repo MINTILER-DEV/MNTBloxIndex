@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { BlobNotFoundError, BlobPreconditionFailedError, get, put } from "@vercel/blob";
+import { BlobNotFoundError, get, put } from "@vercel/blob";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -9,8 +9,6 @@ const rootDirectory = path.resolve(__dirname, "..", "..");
 const localIndexPath = path.join(rootDirectory, "public", "data", "index.json");
 const blobIndexPath = "state/index.json";
 const privateBlobAccess = "private";
-const writeRetryCount = 3;
-
 export async function readIndexDocumentAsync()
 {
   const snapshot = await readSnapshotAsync();
@@ -24,13 +22,14 @@ export async function findSongByCodeAsync(code)
   return index.songs.find((song) => song.code === normalizedCode) ?? null;
 }
 
-export async function createSongAsync({ audioUrl, songName, artist, uploaderName, deviceId })
+export async function createSongAsync({ linkedAssetId, audioUrl, songName, artist, uploaderName, deviceId })
 {
   return mutateIndexDocumentAsync((index) =>
   {
     const code = generateUniqueCode(index.songs);
     const song = {
       code,
+      linkedAssetId: normalizeAssetId(linkedAssetId),
       songName: songName.trim(),
       artist: artist.trim(),
       uploaderName: uploaderName?.trim() || "",
@@ -91,33 +90,17 @@ async function readSnapshotAsync()
 
 async function mutateIndexDocumentAsync(mutator)
 {
-  for (let attempt = 0; attempt < writeRetryCount; attempt += 1)
+  const snapshot = await readSnapshotAsync();
+  const result = mutator(cloneIndex(snapshot.index));
+
+  if (result?.notFound || result?.forbidden)
   {
-    const snapshot = await readSnapshotAsync();
-    const result = mutator(cloneIndex(snapshot.index));
-
-    if (result?.notFound || result?.forbidden)
-    {
-      return result;
-    }
-
-    const nextIndex = normalizeIndexDocument(result.index);
-
-    try
-    {
-      await writeSnapshotAsync(nextIndex, snapshot.etag);
-      return { value: result.value, index: nextIndex };
-    }
-    catch (error)
-    {
-      if (!(error instanceof BlobPreconditionFailedError) || !hasBlobToken() || attempt === writeRetryCount - 1)
-      {
-        throw error;
-      }
-    }
+    return result;
   }
 
-  throw new Error("Failed to update the song index after multiple retries.");
+  const nextIndex = normalizeIndexDocument(result.index);
+  await writeSnapshotAsync(nextIndex);
+  return { value: result.value, index: nextIndex };
 }
 
 async function readBlobSnapshotAsync()
@@ -151,24 +134,17 @@ async function readBlobSnapshotAsync()
   }
 }
 
-async function writeSnapshotAsync(index, etag)
+async function writeSnapshotAsync(index)
 {
   if (hasBlobToken())
   {
-    const options = {
+    await put(blobIndexPath, JSON.stringify(index, null, 2) + "\n", {
       access: privateBlobAccess,
       allowOverwrite: true,
       addRandomSuffix: false,
       cacheControlMaxAge: 60,
       contentType: "application/json"
-    };
-
-    if (etag)
-    {
-      options.ifMatch = etag;
-    }
-
-    await put(blobIndexPath, JSON.stringify(index, null, 2) + "\n", options);
+    });
     return;
   }
 
@@ -195,7 +171,7 @@ async function readLocalSnapshotAsync()
 
     if (canUseLocalFallback())
     {
-      await writeSnapshotAsync(empty, null);
+      await writeSnapshotAsync(empty);
     }
 
     return { index: empty, etag: null };
@@ -221,6 +197,7 @@ function normalizeIndexDocument(value)
         .filter((song) => song && typeof song === "object")
         .map((song) => ({
           code: normalizeSongCode(song.code),
+          linkedAssetId: normalizeAssetId(song.linkedAssetId),
           songName: `${song.songName ?? ""}`.trim(),
           artist: `${song.artist ?? ""}`.trim(),
           uploaderName: `${song.uploaderName ?? ""}`.trim(),
@@ -232,7 +209,7 @@ function normalizeIndexDocument(value)
     : [];
 
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     songs
   };
 }
@@ -240,7 +217,7 @@ function normalizeIndexDocument(value)
 function createEmptyIndexDocument()
 {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     songs: []
   };
 }
@@ -262,6 +239,17 @@ function generateUniqueCode(songs)
 function normalizeSongCode(value)
 {
   return `${value ?? ""}`.trim().toUpperCase();
+}
+
+function normalizeAssetId(value)
+{
+  let normalizedValue = `${value ?? ""}`.trim();
+  if (normalizedValue.toLowerCase().startsWith("rbxassetid://"))
+  {
+    normalizedValue = normalizedValue.slice("rbxassetid://".length);
+  }
+
+  return /^\d+$/.test(normalizedValue) ? normalizedValue : "";
 }
 
 function cloneIndex(index)

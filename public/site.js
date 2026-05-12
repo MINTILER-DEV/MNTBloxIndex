@@ -32,6 +32,30 @@ export async function submitSong(body)
   return normalizeSong(responseBody);
 }
 
+export async function autofillFromRobloxSoundId(assetId)
+{
+  const normalizedAssetId = `${assetId ?? ""}`.trim().replace(/^rbxassetid:\/\//i, "");
+  if (!/^\d+$/.test(normalizedAssetId))
+  {
+    throw new Error("Roblox sound ID must contain digits only.");
+  }
+
+  const response = await fetch(`/api/roblox-sounds/${normalizedAssetId}`, { cache: "no-store" });
+  const responseBody = await response.json();
+  if (!response.ok)
+  {
+    throw new Error(responseBody.error || "Roblox sound lookup failed.");
+  }
+
+  return {
+    assetId: `${responseBody.assetId ?? normalizedAssetId}`.trim(),
+    audioUrl: `${responseBody.audioUrl ?? ""}`.trim(),
+    songName: `${responseBody.songName ?? ""}`.trim(),
+    artist: `${responseBody.artist ?? ""}`.trim(),
+    creatorName: `${responseBody.creatorName ?? ""}`.trim()
+  };
+}
+
 export function filterSongs(entries, filters)
 {
   const normalizedQuery = normalizeText(filters.query);
@@ -42,7 +66,7 @@ export function filterSongs(entries, filters)
   const filtered = entries.filter((song) =>
   {
     const matchesQuery = !normalizedQuery
-      || [song.code, song.songName, song.artist, song.uploaderName, song.audioUrl, song.audioHost]
+      || [song.code, song.linkedAssetId, song.songName, song.artist, song.uploaderName, song.audioUrl, song.audioHost]
         .some((value) => normalizeText(value).includes(normalizedQuery));
 
     const matchesArtist = !normalizedArtist || normalizeText(song.artist) === normalizedArtist;
@@ -128,9 +152,7 @@ export function createSongCard(song, options = {})
 
   const subMeta = document.createElement("p");
   subMeta.className = "song-submeta";
-  subMeta.textContent = song.uploaderName
-    ? `Uploaded by ${song.uploaderName}`
-    : `Source host ${song.audioHost}`;
+  subMeta.textContent = buildSubMetaLine(song);
 
   textWrap.append(title, meta, subMeta);
   identity.append(code, textWrap);
@@ -188,6 +210,7 @@ function normalizeSong(song)
 
   return {
     code: `${song.code ?? ""}`.trim().toUpperCase(),
+    linkedAssetId: `${song.linkedAssetId ?? ""}`.trim(),
     songName: `${song.songName ?? ""}`.trim(),
     artist: `${song.artist ?? ""}`.trim(),
     uploaderName: `${song.uploaderName ?? ""}`.trim(),
@@ -204,6 +227,21 @@ function buildMetaLine(song)
   {
     segments.push(formatDate(song.uploadedAt));
   }
+
+  return segments.filter(Boolean).join(" / ");
+}
+
+function buildSubMetaLine(song)
+{
+  const segments = [];
+  if (song.linkedAssetId)
+  {
+    segments.push(`Replaces Roblox ID ${song.linkedAssetId}`);
+  }
+
+  segments.push(song.uploaderName
+    ? `Uploaded by ${song.uploaderName}`
+    : `Source host ${song.audioHost}`);
 
   return segments.filter(Boolean).join(" / ");
 }

@@ -30,6 +30,8 @@ export async function validateAudioUrlAsync(url)
     return null;
   }
 
+  const preserveOriginalUrl = shouldPreserveOriginalUrl(parsedUrl);
+
   const headResponse = await fetch(parsedUrl, {
     method: "HEAD",
     redirect: "follow"
@@ -40,7 +42,12 @@ export async function validateAudioUrlAsync(url)
     const contentType = `${headResponse.headers.get("content-type") ?? ""}`.toLowerCase();
     if (looksLikeAudioContentType(contentType))
     {
-      return headResponse.url;
+      return preserveOriginalUrl ? parsedUrl.toString() : headResponse.url;
+    }
+
+    if (preserveOriginalUrl && looksLikeRobloxAssetDeliveryResponse(contentType))
+    {
+      return parsedUrl.toString();
     }
   }
 
@@ -60,15 +67,34 @@ export async function validateAudioUrlAsync(url)
   const contentType = `${getResponse.headers.get("content-type") ?? ""}`.toLowerCase();
   if (looksLikeAudioContentType(contentType))
   {
-    return getResponse.url;
+    return preserveOriginalUrl ? parsedUrl.toString() : getResponse.url;
+  }
+
+  if (preserveOriginalUrl && looksLikeRobloxAssetDeliveryResponse(contentType))
+  {
+    return parsedUrl.toString();
   }
 
   const extension = path.extname(new URL(getResponse.url).pathname).toLowerCase();
-  return knownAudioExtensions.has(extension) ? getResponse.url : null;
+  return knownAudioExtensions.has(extension)
+    ? (preserveOriginalUrl ? parsedUrl.toString() : getResponse.url)
+    : null;
 }
 
 function looksLikeAudioContentType(contentType)
 {
   return contentType.startsWith("audio/")
     || contentType.includes("application/ogg");
+}
+
+function shouldPreserveOriginalUrl(parsedUrl)
+{
+  return parsedUrl.hostname.endsWith("assetdelivery.roblox.com")
+    && parsedUrl.pathname.startsWith("/v1/asset")
+    && parsedUrl.searchParams.has("id");
+}
+
+function looksLikeRobloxAssetDeliveryResponse(contentType)
+{
+  return contentType === "application/octet-stream";
 }
