@@ -1,4 +1,4 @@
-const DEVICE_ID_STORAGE_KEY = "mntbloxindex-device-id";
+﻿export { getStoredDeviceId, storeDeviceId } from "./device-id.js";
 
 export async function fetchSongs()
 {
@@ -178,22 +178,6 @@ export function createSongCard(song, options = {})
 
   article.append(topRow, audio);
   return article;
-}
-
-export function getStoredDeviceId()
-{
-  return localStorage.getItem(DEVICE_ID_STORAGE_KEY) ?? "";
-}
-
-export function storeDeviceId(deviceId)
-{
-  const normalizedDeviceId = `${deviceId ?? ""}`.trim();
-  if (!normalizedDeviceId)
-  {
-    return;
-  }
-
-  localStorage.setItem(DEVICE_ID_STORAGE_KEY, normalizedDeviceId);
 }
 
 export function uniqueValues(values)

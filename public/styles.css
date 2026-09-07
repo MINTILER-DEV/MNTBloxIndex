@@ -456,3 +456,36 @@ button, .action-link, .nav-link { transition: background 160ms ease, opacity 160
 @keyframes appear { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
 @media (max-width: 640px) { .search-hero { margin-top: 2rem; } .site-header { flex-direction: column; align-items: flex-start; } .site-nav { flex-wrap: wrap; } .hero-search button { padding: 10px 16px; } .hero-search input { padding: 10px; font-size: .95rem; } }
+/* Upload follows the same rounded surfaces as Search. */
+.upload-hero { margin: 3rem 0 2rem; max-width: 700px; }
+.upload-hero h1 { max-width: none; text-transform: none; letter-spacing: -.04em; font: 600 clamp(2.5rem, 5vw, 3.7rem)/1.1 "Segoe UI", sans-serif; margin: .7rem 0 1rem; }
+.upload-layout { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr); gap: 24px; align-items: start; }
+.upload-panel { padding: 28px; }
+.upload-panel .stack-form { gap: 26px; }
+.form-section { display: grid; gap: 18px; }
+.upload-shell h2 { font-family: "Segoe UI", sans-serif; text-transform: none; letter-spacing: 0; font-size: 1.1rem; }
+.step-number { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; margin-right: 7px; background: #283a35; color: #a5eacf; font-size: .85rem; }
+.upload-shell .field-label { text-transform: none; letter-spacing: 0; font-weight: 500; color: #d6dfeb; }
+.field-hint { font-size: .8rem; line-height: 1.5; color: var(--muted); }
+.optional { color: var(--muted); font-size: .75rem; margin-left: 6px; }
+.autofill-details { padding: 14px; border: 1px solid var(--line); border-radius: 12px; }
+.autofill-details summary { cursor: pointer; color: #a5eacf; font-size: .85rem; }
+.autofill-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; margin: 16px 0 10px; }
+#upload-preview { width: 100%; }
+.device-card { background: #111820; border: 1px solid #35483f; border-radius: 14px; padding: 18px; display: grid; gap: 10px; }
+.device-id-row { display: flex; gap: 8px; }
+.device-id-row input { min-width: 0; font-family: Consolas, monospace; font-size: .85rem; }
+.device-id-row button { white-space: nowrap; }
+.upload-submit { display: grid; gap: 10px; }
+#upload-button { background: #a5eacf; min-height: 52px; }
+.upload-shell button:disabled { cursor: wait; opacity: .55; }
+.upload-sidebar { display: grid; gap: 20px; }
+.upload-help { line-height: 1.65; color: var(--muted); }
+.upload-help h2 { color: var(--ink); }
+.upload-help strong { color: #d6dfeb; font-weight: 550; }
+.upload-sidebar .song-card__top { flex-wrap: wrap; }
+.upload-sidebar .song-card__identity { min-width: 0; flex-wrap: wrap; }
+.upload-success { display: grid; gap: 14px; background: #22342f; border: 1px solid #608375; border-radius: 14px; padding: 20px; }
+[hidden] { display: none !important; }
+@media (max-width: 850px) { .upload-layout { grid-template-columns: 1fr; } .upload-sidebar { grid-template-columns: 1fr; } }
+@media (max-width: 480px) { .upload-panel { padding: 18px; } .autofill-row { grid-template-columns: 1fr; } .device-id-row { flex-wrap: wrap; } .device-id-row button { width: 100%; } }

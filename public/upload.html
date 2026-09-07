@@ -1,132 +1,27 @@
-<!DOCTYPE html>
+﻿<!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>MNTBloxIndex Upload</title>
-    <link rel="stylesheet" href="./styles.css">
-  </head>
-  <body>
-    <main class="shell">
-      <header class="site-header">
-        <div>
-          <p class="eyebrow">MNTBloxIndex</p>
-          <h1>Share a sound.</h1>
-        </div>
-
-        <nav class="site-nav" aria-label="Primary">
-          <a class="nav-link nav-link--active" href="./upload.html">Upload</a>
-          <a class="nav-link" href="./search.html">Search</a>
-        </nav>
-      </header>
-
-      <section class="hero-grid">
-        <article class="hero-copy">
-          <p class="lede">
-            Submit the linked Roblox sound ID plus the replacement audio source. The API validates the link,
-            assigns a six-letter code, and makes it searchable in MNTBloxAudio.
-          </p>
-
-          <div class="hero-actions">
-            <a class="action-link" href="./search.html">Open search page</a>
-          </div>
-        </article>
-
-        <aside class="stats-panel">
-          <div class="stat-block">
-            <span class="stat-label">Code format</span>
-            <strong class="stat-value">ABCDEF</strong>
-          </div>
-          <div class="stat-block">
-            <span class="stat-label">Source type</span>
-            <strong class="stat-value">Direct audio URLs</strong>
-          </div>
-          <div class="stat-block">
-            <span class="stat-label">Preview support</span>
-            <strong class="stat-value">Built in</strong>
-          </div>
-        </aside>
-      </section>
-
-      <section class="split-layout">
-        <section class="panel">
-          <div class="section-head">
-            <div>
-              <h2>Submit Audio Link</h2>
-              <p>Linked Roblox sound ID, song name, artist, and a direct audio URL are required. Uploader name is optional. You can also paste a source Roblox sound ID to autofill the direct assetdelivery link plus metadata.</p>
-            </div>
-          </div>
-
-          <form id="upload-form" class="stack-form">
-            <div class="form-grid">
-              <label class="field">
-                <span class="field-label">Source Roblox sound ID</span>
-                <input id="roblox-asset-id" type="text" inputmode="numeric" placeholder="105000208972438">
-              </label>
-
-              <div class="field field--actions">
-                <span class="field-label">Autofill</span>
-                <div class="action-row action-row--tight">
-                  <button id="autofill-roblox-button" type="button" class="button-secondary">Autofill From Roblox ID</button>
-                  <p id="autofill-status" class="status-text"></p>
-                </div>
-              </div>
-            </div>
-
-            <label class="field">
-              <span class="field-label">Linked Roblox sound ID to replace</span>
-              <input id="linked-asset-id" name="linkedAssetId" type="text" inputmode="numeric" placeholder="1843529274" required>
-            </label>
-
-            <label class="field">
-              <span class="field-label">Direct audio URL</span>
-              <input id="audio-url" name="audioUrl" type="url" placeholder="https://example.com/song.mp3" required>
-            </label>
-
-            <div class="form-grid">
-              <label class="field">
-                <span class="field-label">Song name</span>
-                <input id="song-name" name="songName" type="text" maxlength="120" required>
-              </label>
-
-              <label class="field">
-                <span class="field-label">Artist</span>
-                <input id="artist" name="artist" type="text" maxlength="120" required>
-              </label>
-            </div>
-
-            <div class="form-grid">
-              <label class="field">
-                <span class="field-label">Uploader name</span>
-                <input id="uploader-name" name="uploaderName" type="text" maxlength="80" placeholder="Optional">
-              </label>
-
-              <label class="field">
-                <span class="field-label">Device ID</span>
-                <input id="device-id" name="deviceId" type="text" maxlength="64" placeholder="Used for app-side delete control">
-              </label>
-            </div>
-
-            <div class="action-row">
-              <button id="upload-button" type="submit">Submit Link</button>
-              <p id="upload-status" class="status-text"></p>
-            </div>
-          </form>
-        </section>
-
-        <aside class="panel">
-          <div class="section-head">
-            <div>
-              <h2>Recent Songs</h2>
-              <p id="result-summary">Loading songs...</p>
-            </div>
-          </div>
-
-          <div id="results" class="song-list"></div>
-        </aside>
-      </section>
-    </main>
-
-    <script type="module" src="./app.js"></script>
-  </body>
-</html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Share replacement audio with MNTBloxAudio. Your device ID is filled automatically from the app and remembered for next time."><title>Share a sound · MNTBloxIndex</title><link rel="stylesheet" href="/styles.css"></head>
+<body><main class="shell upload-shell">
+ <header class="site-header"><a href="/" class="brand">MNT<span>BloxIndex</span></a><nav class="site-nav" aria-label="Primary"><a class="nav-link" href="/">Search</a><a class="nav-link nav-link--active" href="/upload.html">Share audio</a><a class="nav-link" href="https://github.com/MINTILER-DEV/MNTBloxAudio/releases/latest">Get the app ↗</a></nav></header>
+ <section class="upload-hero"><p class="eyebrow">ADD TO THE LIBRARY</p><h1>Share a sound.</h1><p class="lede">Add your audio link and the Roblox sound it replaces. We'll give you a song code to use in the app.</p></section>
+ <div class="upload-layout">
+  <section class="panel upload-panel" aria-label="Share audio form">
+   <form id="upload-form" class="stack-form">
+    <div class="form-section"><h2><span class="step-number">1</span> Choose your audio</h2>
+     <label class="field"><span class="field-label">Direct audio link</span><input id="audio-url" name="audioUrl" type="url" placeholder="https://example.com/song.mp3" required><span class="field-hint">A link that opens the audio file itself.</span></label>
+     <details class="autofill-details"><summary>Use an existing Roblox sound instead</summary><div class="autofill-row"><label class="field"><span class="field-label">Source Roblox sound ID</span><input id="roblox-asset-id" type="text" inputmode="numeric" placeholder="Paste a sound ID"></label><button id="autofill-roblox-button" type="button" class="button-secondary">Fill details</button></div><p id="autofill-status" class="status-text" role="status"></p></details>
+     <audio id="upload-preview" controls preload="none" hidden aria-label="Preview your replacement audio"></audio>
+    </div>
+    <div class="form-section"><h2><span class="step-number">2</span> Add the details</h2>
+     <label class="field"><span class="field-label">Roblox sound ID to replace</span><input id="linked-asset-id" name="linkedAssetId" type="text" inputmode="numeric" pattern="[0-9]+" placeholder="1843529274" required><span class="field-hint">The original sound that this audio should replace.</span></label>
+     <div class="form-grid"><label class="field"><span class="field-label">Song name</span><input id="song-name" name="songName" type="text" maxlength="120" placeholder="Name your sound" required></label><label class="field"><span class="field-label">Artist</span><input id="artist" name="artist" type="text" maxlength="120" placeholder="Artist or creator" required></label></div>
+     <label class="field"><span class="field-label">Your name <span class="optional">optional</span></span><input id="uploader-name" name="uploaderName" type="text" maxlength="80" placeholder="How you'd like to be credited" autocomplete="nickname"></label>
+    </div>
+    <div class="device-card"><label for="device-id" class="field-label">Your device ID</label><div class="device-id-row"><input id="device-id" name="deviceId" type="text" maxlength="64" pattern="[a-zA-Z0-9_-]{1,64}" required autocomplete="off" spellcheck="false" aria-describedby="device-id-help device-id-status"><button id="copy-device-id" type="button" class="button-secondary">Copy ID</button></div><p id="device-id-help" class="field-hint">Filled from the app and remembered here. You can also paste an ID you've copied.</p><p id="device-id-status" class="status-text" role="status" aria-live="polite"></p></div>
+    <div class="upload-submit"><button id="upload-button" type="submit">Share sound</button><p id="upload-status" class="status-text" role="status" aria-live="polite"></p></div>
+   </form>
+   <section id="upload-success" class="upload-success" hidden aria-label="Your song code"><h2>Your sound is ready.</h2><p>Copy this code, then search for it in MNTBloxAudio.</p><div class="action-row"><button id="copy-song-code" type="button"></button><a id="view-upload" class="action-link" href="/">View in search</a></div><p id="song-code-status" class="status-text" role="status"></p></section>
+  </section>
+  <aside class="upload-sidebar"><div class="panel upload-help"><h2>One code. Ready to use.</h2><p>After sharing, open <strong>Search</strong> in MNTBloxAudio and paste your code. Select <strong>Store for later</strong> or <strong>Enable replacement</strong>.</p><p>Your device ID is saved in this browser. Use <strong>Copy ID</strong> to carry it to another browser or computer.</p></div><section class="panel"><div class="section-head"><div><h2>Recently shared</h2><p id="result-summary" role="status">Loading sounds…</p></div></div><div id="results" class="song-list"></div></section></aside>
+ </div>
+</main><script type="module" src="/app.js"></script></body></html>
