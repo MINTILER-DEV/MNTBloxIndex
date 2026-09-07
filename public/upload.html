@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MNTBloxIndex Upload</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="site-header">
+        <div>
+          <p class="eyebrow">MNTBloxIndex</p>
+          <h1>Share a sound.</h1>
+        </div>
+
+        <nav class="site-nav" aria-label="Primary">
+          <a class="nav-link nav-link--active" href="./upload.html">Upload</a>
+          <a class="nav-link" href="./search.html">Search</a>
+        </nav>
+      </header>
+
+      <section class="hero-grid">
+        <article class="hero-copy">
+          <p class="lede">
+            Submit the linked Roblox sound ID plus the replacement audio source. The API validates the link,
+            assigns a six-letter code, and makes it searchable in MNTBloxAudio.
+          </p>
+
+          <div class="hero-actions">
+            <a class="action-link" href="./search.html">Open search page</a>
+          </div>
+        </article>
+
+        <aside class="stats-panel">
+          <div class="stat-block">
+            <span class="stat-label">Code format</span>
+            <strong class="stat-value">ABCDEF</strong>
+          </div>
+          <div class="stat-block">
+            <span class="stat-label">Source type</span>
+            <strong class="stat-value">Direct audio URLs</strong>
+          </div>
+          <div class="stat-block">
+            <span class="stat-label">Preview support</span>
+            <strong class="stat-value">Built in</strong>
+          </div>
+        </aside>
+      </section>
+
+      <section class="split-layout">
+        <section class="panel">
+          <div class="section-head">
+            <div>
+              <h2>Submit Audio Link</h2>
+              <p>Linked Roblox sound ID, song name, artist, and a direct audio URL are required. Uploader name is optional. You can also paste a source Roblox sound ID to autofill the direct assetdelivery link plus metadata.</p>
+            </div>
+          </div>
+
+          <form id="upload-form" class="stack-form">
+            <div class="form-grid">
+              <label class="field">
+                <span class="field-label">Source Roblox sound ID</span>
+                <input id="roblox-asset-id" type="text" inputmode="numeric" placeholder="105000208972438">
+              </label>
+
+              <div class="field field--actions">
+                <span class="field-label">Autofill</span>
+                <div class="action-row action-row--tight">
+                  <button id="autofill-roblox-button" type="button" class="button-secondary">Autofill From Roblox ID</button>
+                  <p id="autofill-status" class="status-text"></p>
+                </div>
+              </div>
+            </div>
+
+            <label class="field">
+              <span class="field-label">Linked Roblox sound ID to replace</span>
+              <input id="linked-asset-id" name="linkedAssetId" type="text" inputmode="numeric" placeholder="1843529274" required>
+            </label>
+
+            <label class="field">
+              <span class="field-label">Direct audio URL</span>
+              <input id="audio-url" name="audioUrl" type="url" placeholder="https://example.com/song.mp3" required>
+            </label>
+
+            <div class="form-grid">
+              <label class="field">
+                <span class="field-label">Song name</span>
+                <input id="song-name" name="songName" type="text" maxlength="120" required>
+              </label>
+
+              <label class="field">
+                <span class="field-label">Artist</span>
+                <input id="artist" name="artist" type="text" maxlength="120" required>
+              </label>
+            </div>
+
+            <div class="form-grid">
+              <label class="field">
+                <span class="field-label">Uploader name</span>
+                <input id="uploader-name" name="uploaderName" type="text" maxlength="80" placeholder="Optional">
+              </label>
+
+              <label class="field">
+                <span class="field-label">Device ID</span>
+                <input id="device-id" name="deviceId" type="text" maxlength="64" placeholder="Used for app-side delete control">
+              </label>
+            </div>
+
+            <div class="action-row">
+              <button id="upload-button" type="submit">Submit Link</button>
+              <p id="upload-status" class="status-text"></p>
+            </div>
+          </form>
+        </section>
+
+        <aside class="panel">
+          <div class="section-head">
+            <div>
+              <h2>Recent Songs</h2>
+              <p id="result-summary">Loading songs...</p>
+            </div>
+          </div>
+
+          <div id="results" class="song-list"></div>
+        </aside>
+      </section>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

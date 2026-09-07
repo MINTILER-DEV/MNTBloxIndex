@@ -20,9 +20,9 @@ let songs = [];
 const query = new URLSearchParams(window.location.search);
 searchInput.value = query.get("q") ?? "";
 
-await loadSongs();
-
-searchInput.addEventListener("input", render);
+let debounce;
+searchInput.addEventListener("input", () => { clearTimeout(debounce); debounce = setTimeout(render, 160); });
+document.querySelector("#search-form").addEventListener("submit", event => { event.preventDefault(); clearTimeout(debounce); render(); });
 artistFilter.addEventListener("change", render);
 uploaderFilter.addEventListener("change", render);
 hostFilter.addEventListener("change", render);
@@ -141,3 +141,5 @@ function render()
 
   resultsContainer.append(fragment);
 }
+
+await loadSongs();
