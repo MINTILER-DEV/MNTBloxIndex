@@ -17,6 +17,10 @@ test("limit preserves total and newest ordering without mutating storage", () =>
   assert.equal(result.total, 2); assert.equal(result.songs.length, 1);
   assert.equal(result.songs[0].code, "GHIJKL"); assert.equal(document.songs[0].code, "ABCDEF");
 });
+test("search never exposes private storage state", () => {
+  const result = searchIndex({ songs: [], accounts: [{ passwordHash: "secret" }], rateLimits: { "add:1": [1] } }, "");
+  assert.equal("accounts" in result, false); assert.equal("rateLimits" in result, false);
+});
 test("API rejects invalid limits and oversized queries before accessing storage", async () => {
   for (const query of ["limit=0", "limit=501", "limit=NaN", "limit=1.5", `q=${"a".repeat(201)}`])
     assert.equal((await GET(new Request(`https://example.test/api/index?${query}`))).status, 400);
