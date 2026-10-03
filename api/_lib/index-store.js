@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { BlobNotFoundError, get, put } from "@vercel/blob";
+import { randomUUID } from "node:crypto";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,10 +23,42 @@ export async function findSongByCodeAsync(code)
   return index.songs.find((song) => song.code === normalizedCode) ?? null;
 }
 
-export async function createSongAsync({ linkedAssetId, audioUrl, songName, artist, uploaderName, deviceId })
+export async function createAccountAsync({ username, passwordHash, deviceId })
 {
   return mutateIndexDocumentAsync((index) =>
   {
+    if (index.accounts.some(account => account.username === username)) return { conflict: true };
+    const account = { id: randomUUID(), username, passwordHash, createdAt: new Date().toISOString() };
+    const migratedCount = migrateDeviceSongs(index, account.id, deviceId);
+    index.accounts.push(account);
+    return { index, value: { account, migratedCount } };
+  });
+}
+
+export async function findAccountByUsernameAsync(username)
+{
+  const index = await readIndexDocumentAsync();
+  return index.accounts.find(account => account.username === username) ?? null;
+}
+
+export async function findSongsByAccountAsync(accountId)
+{
+  const index = await readIndexDocumentAsync();
+  return index.songs.filter(song => song.accountId === accountId);
+}
+
+export async function migrateDeviceSongsAsync(accountId, deviceId)
+{
+  if (!deviceId) return { value: 0 };
+  return mutateIndexDocumentAsync(index => ({ index, value: migrateDeviceSongs(index, accountId, deviceId) }));
+}
+
+export async function createSongAsync({ linkedAssetId, audioUrl, songName, artist, uploaderName, accountId, consumeRateLimit })
+{
+  return mutateIndexDocumentAsync((index) =>
+  {
+    const rateLimit = consumeRateLimit?.(index);
+    if (rateLimit?.response) return rateLimit;
     const code = generateUniqueCode(index.songs);
     const song = {
       code,
@@ -33,7 +66,8 @@ export async function createSongAsync({ linkedAssetId, audioUrl, songName, artis
       songName: songName.trim(),
       artist: artist.trim(),
       uploaderName: uploaderName?.trim() || "",
-      uploadedByDeviceId: deviceId.trim(),
+      accountId,
+      uploadedByDeviceId: "",
       audioUrl,
       uploadedAt: new Date().toISOString()
     };
@@ -43,7 +77,7 @@ export async function createSongAsync({ linkedAssetId, audioUrl, songName, artis
   });
 }
 
-export async function deleteSongAsync(code, deviceId)
+export async function deleteSongAsync(code, accountId, consumeRateLimit)
 {
   const normalizedCode = normalizeSongCode(code);
 
@@ -55,13 +89,50 @@ export async function deleteSongAsync(code, deviceId)
       return { notFound: true };
     }
 
-    if (index.songs[songIndex].uploadedByDeviceId !== deviceId.trim())
+    if (index.songs[songIndex].accountId !== accountId)
     {
       return { forbidden: true };
     }
 
+    const rateLimit = consumeRateLimit?.(index);
+    if (rateLimit?.response) return rateLimit;
     const [song] = index.songs.splice(songIndex, 1);
     return { index, value: song };
+  });
+}
+
+export async function updateSongAsync(code, accountId, changes, consumeRateLimit)
+{
+  const normalizedCode = normalizeSongCode(code);
+  return mutateIndexDocumentAsync(index =>
+  {
+    const song = index.songs.find(candidate => candidate.code === normalizedCode);
+    if (!song) return { notFound: true };
+    if (song.accountId !== accountId) return { forbidden: true };
+    const rateLimit = consumeRateLimit?.(index);
+    if (rateLimit?.response) return rateLimit;
+    Object.assign(song, {
+      linkedAssetId: normalizeAssetId(changes.linkedAssetId), audioUrl: changes.audioUrl,
+      songName: changes.songName.trim(), artist: changes.artist.trim(), uploaderName: changes.uploaderName?.trim() || "",
+      updatedAt: new Date().toISOString(), invalidSince: ""
+    });
+    return { index, value: song };
+  });
+}
+
+export async function checkSongsAsync(validateSong, now = new Date())
+{
+  return mutateIndexDocumentAsync(async index => {
+    let deleted = 0; let markedInvalid = 0;
+    const kept = [];
+    for (const song of index.songs) {
+      if (await validateSong(song)) { song.invalidSince = ""; kept.push(song); continue; }
+      const invalidSince = Date.parse(song.invalidSince || "") || now.getTime();
+      if (now.getTime() - invalidSince >= 6 * 60 * 60 * 1000) { deleted++; continue; }
+      song.invalidSince = new Date(invalidSince).toISOString(); markedInvalid++; kept.push(song);
+    }
+    index.songs = kept;
+    return { index, value: { deleted, markedInvalid } };
   });
 }
 
@@ -91,9 +162,10 @@ async function readSnapshotAsync()
 async function mutateIndexDocumentAsync(mutator)
 {
   const snapshot = await readSnapshotAsync();
-  const result = mutator(cloneIndex(snapshot.index));
+  let result = mutator(cloneIndex(snapshot.index));
 
-  if (result?.notFound || result?.forbidden)
+  if (result && typeof result.then === "function") result = await result;
+  if (result?.notFound || result?.forbidden || result?.conflict || result?.response)
   {
     return result;
   }
@@ -202,24 +274,36 @@ function normalizeIndexDocument(value)
           artist: `${song.artist ?? ""}`.trim(),
           uploaderName: `${song.uploaderName ?? ""}`.trim(),
           uploadedByDeviceId: `${song.uploadedByDeviceId ?? ""}`.trim(),
+          accountId: `${song.accountId ?? ""}`.trim(),
           audioUrl: `${song.audioUrl ?? ""}`.trim(),
-          uploadedAt: `${song.uploadedAt ?? ""}`.trim()
+          uploadedAt: `${song.uploadedAt ?? ""}`.trim(), updatedAt: `${song.updatedAt ?? ""}`.trim(), invalidSince: `${song.invalidSince ?? ""}`.trim()
         }))
         .filter((song) => song.code && song.songName && song.artist && song.audioUrl)
     : [];
 
   return {
-    schemaVersion: 2,
-    songs
+    schemaVersion: 3, songs,
+    accounts: Array.isArray(value?.accounts) ? value.accounts.filter(account => account?.id && account?.username && account?.passwordHash).map(account => ({ id: `${account.id}`, username: `${account.username}`, passwordHash: `${account.passwordHash}`, createdAt: `${account.createdAt ?? ""}` })) : [],
+    rateLimits: typeof value?.rateLimits === "object" && value.rateLimits ? value.rateLimits : {}
   };
 }
 
 function createEmptyIndexDocument()
 {
   return {
-    schemaVersion: 2,
-    songs: []
+    schemaVersion: 3, songs: [], accounts: [], rateLimits: {}
   };
+}
+
+function migrateDeviceSongs(index, accountId, deviceId)
+{
+  const normalizedDeviceId = `${deviceId ?? ""}`.trim();
+  if (!normalizedDeviceId) return 0;
+  let count = 0;
+  for (const song of index.songs) {
+    if (!song.accountId && song.uploadedByDeviceId === normalizedDeviceId) { song.accountId = accountId; song.uploadedByDeviceId = ""; count++; }
+  }
+  return count;
 }
 
 function generateUniqueCode(songs)

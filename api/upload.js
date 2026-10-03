@@ -1,6 +1,8 @@
 import { validateAudioUrlAsync } from "./_lib/audio-url.js";
 import { error, json } from "./_lib/http.js";
 import { createSongAsync } from "./_lib/index-store.js";
+import { requireSession } from "./_lib/auth.js";
+import { consumeRateLimit } from "./_lib/rate-limit.js";
 
 export async function POST(request)
 {
@@ -20,11 +22,12 @@ export async function POST(request)
   const songName = `${body?.songName ?? ""}`.trim();
   const artist = `${body?.artist ?? ""}`.trim();
   const uploaderName = `${body?.uploaderName ?? ""}`.trim();
-  const deviceId = `${body?.deviceId ?? ""}`.trim();
+  const auth = requireSession(request);
+  if (auth.response) return auth.response;
 
-  if (!linkedAssetId || !audioUrl || !songName || !artist || !deviceId)
+  if (!linkedAssetId || !audioUrl || !songName || !artist)
   {
-    return error(400, "linkedAssetId, audioUrl, songName, artist, and deviceId are required.");
+    return error(400, "linkedAssetId, audioUrl, songName, and artist are required.");
   }
 
   if (!/^\d+$/.test(linkedAssetId))
@@ -44,8 +47,11 @@ export async function POST(request)
     songName,
     artist,
     uploaderName,
-    deviceId
+    accountId: auth.session.sub,
+    consumeRateLimit: index => consumeRateLimit(index, `add:${auth.session.sub}`, 2, 60_000)
   });
+
+  if (result.response) return result.response;
 
   return json(result.value, { status: 201 });
 }

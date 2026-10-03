@@ -13,12 +13,12 @@ export async function fetchSongs()
   return songs.map(normalizeSong);
 }
 
-export async function submitSong(body)
+export async function submitSong(body, token)
 {
   const response = await fetch("/api/upload", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json", "Authorization": `Bearer ${token}`
     },
     body: JSON.stringify(body)
   });
@@ -30,6 +30,21 @@ export async function submitSong(body)
   }
 
   return normalizeSong(responseBody);
+}
+
+export async function updateSong(code, body, token) {
+  const response = await fetch(`/api/songs/${encodeURIComponent(code)}`, { method: "PUT", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, body: JSON.stringify(body) });
+  const responseBody = await response.json(); if (!response.ok) throw new Error(responseBody.error || "Could not update audio."); return normalizeSong(responseBody);
+}
+
+export async function deleteSong(code, token) {
+  const response = await fetch(`/api/songs/${encodeURIComponent(code)}`, { method: "DELETE", headers: { "Authorization": `Bearer ${token}` } });
+  const body = await response.json(); if (!response.ok) throw new Error(body.error || "Could not delete audio.");
+}
+
+export async function fetchMySongs(token) {
+  const response = await fetch("/api/my-songs", { headers: { "Authorization": `Bearer ${token}` } }); const body = await response.json();
+  if (!response.ok) throw new Error(body.error || "Could not load your audio."); return (body.songs || []).map(normalizeSong);
 }
 
 export async function autofillFromRobloxSoundId(assetId)

@@ -1,5 +1,7 @@
 ﻿import { autofillFromRobloxSoundId, createSongCard, fetchSongs, sortSongs, submitSong } from "./site.js";
 import { copyDeviceId, initializeDeviceId, normalizeDeviceId, storeDeviceId } from "./device-id.js";
+import { deleteSong, fetchMySongs, updateSong } from "./site.js";
+import { authenticate, clearSession, getSession } from "./account.js";
 
 const uploadForm = document.querySelector("#upload-form");
 const uploadButton = document.querySelector("#upload-button");
@@ -18,11 +20,35 @@ const autofillStatus = document.querySelector("#autofill-status");
 const preview = document.querySelector("#upload-preview");
 const successPanel = document.querySelector("#upload-success");
 const copySongButton = document.querySelector("#copy-song-code");
+const accountStatus = document.querySelector("#account-status");
+const usernameInput = document.querySelector("#account-username");
+const passwordInput = document.querySelector("#account-password");
+const signInButton = document.querySelector("#sign-in");
+const createAccountButton = document.querySelector("#create-account");
+const signOutButton = document.querySelector("#sign-out");
+let session = getSession();
+const myAudio = document.querySelector("#my-audio");
+const myAudioList = document.querySelector("#my-audio-list");
+const myAudioStatus = document.querySelector("#my-audio-status");
 
 const identity = initializeDeviceId(window.location.href);
 deviceIdInput.value = identity.id;
 // Remove the handoff from the address bar before the user copies or shares the page URL.
 window.history.replaceState(window.history.state, "", identity.cleanUrl);
+function updateAccountUi(message = "") {
+  const signedIn = Boolean(session?.token);
+  accountStatus.textContent = message || (signedIn ? `Signed in as ${session.username}.` : "Sign in or create an account. Existing device submissions transfer when you sign in.");
+  signInButton.hidden = signedIn; createAccountButton.hidden = signedIn; signOutButton.hidden = !signedIn;
+  usernameInput.disabled = signedIn; passwordInput.disabled = signedIn; myAudio.hidden = !signedIn;
+}
+async function runAuth(mode) {
+  try { session = await authenticate(mode, usernameInput.value, passwordInput.value, deviceIdInput.value); passwordInput.value = ""; updateAccountUi(session.migratedCount ? `Signed in as ${session.username}. Moved ${session.migratedCount} device submission(s).` : ""); await refreshMyAudio(); }
+  catch (exception) { updateAccountUi(exception instanceof Error ? exception.message : "Authentication failed."); }
+}
+signInButton.addEventListener("click", () => runAuth("login"));
+createAccountButton.addEventListener("click", () => runAuth("register"));
+signOutButton.addEventListener("click", () => { clearSession(); session = null; updateAccountUi(); });
+updateAccountUi();
 deviceStatus.textContent = !identity.persisted
   ? "Browser storage is unavailable. Copy this ID to keep it for next time."
   : identity.fromApp ? "Connected to your app. This ID is saved for next time." : "Your ID is saved in this browser. No need to reopen the app.";
@@ -71,6 +97,7 @@ autofillRobloxButton.addEventListener("click", async () => {
 uploadForm.addEventListener("submit", async event => {
   event.preventDefault();
   if (uploadButton.disabled || !uploadForm.reportValidity() || !rememberDeviceId()) return;
+  if (!session?.token) { updateAccountUi("Sign in before sharing audio."); return; }
   uploadButton.disabled = true;
   uploadButton.textContent = "Sharing…";
   uploadForm.setAttribute("aria-busy", "true");
@@ -78,7 +105,7 @@ uploadForm.addEventListener("submit", async event => {
   successPanel.hidden = true;
   const body = Object.fromEntries(new FormData(uploadForm).entries());
   try {
-    const song = await submitSong(body);
+    const song = await submitSong(body, session.token);
     uploadStatus.textContent = `Shared ${song.songName}.`;
     copySongButton.textContent = song.code;
     document.querySelector("#view-upload").href = `/?q=${encodeURIComponent(song.code)}`;
@@ -113,4 +140,27 @@ async function refreshSongs() {
     resultSummary.textContent = "Recent sounds are unavailable. You can still fill out your upload.";
   }
 }
+async function refreshMyAudio() {
+  if (!session?.token) return;
+  myAudioStatus.textContent = "Loading your submissions…";
+  try {
+    const songs = await fetchMySongs(session.token);
+    myAudioList.replaceChildren(...songs.map(createManageCard));
+    myAudioStatus.textContent = songs.length ? "Edit or delete your submissions." : "You have not shared any audio yet.";
+  } catch (exception) { myAudioStatus.textContent = exception instanceof Error ? exception.message : "Could not load your audio."; }
+}
+function createManageCard(song) {
+  const card = createSongCard(song); const actions = card.querySelector(".song-card__actions");
+  const edit = document.createElement("button"); edit.type = "button"; edit.textContent = "Edit";
+  edit.addEventListener("click", async () => {
+    const songName = prompt("Song name", song.songName); if (songName === null) return;
+    const artist = prompt("Artist", song.artist); const audioUrl = prompt("Direct audio URL", song.audioUrl); const linkedAssetId = prompt("Roblox sound ID to replace", song.linkedAssetId);
+    try { await updateSong(song.code, { songName, artist, audioUrl, linkedAssetId, uploaderName: song.uploaderName }, session.token); await refreshMyAudio(); void refreshSongs(); }
+    catch (exception) { alert(exception instanceof Error ? exception.message : "Could not update audio."); }
+  });
+  const remove = document.createElement("button"); remove.type = "button"; remove.textContent = "Delete";
+  remove.addEventListener("click", async () => { if (!confirm(`Delete ${song.songName}?`)) return; try { await deleteSong(song.code, session.token); await refreshMyAudio(); void refreshSongs(); } catch (exception) { alert(exception instanceof Error ? exception.message : "Could not delete audio."); } });
+  actions.append(edit, remove); return card;
+}
 void refreshSongs();
+if (session?.token) void refreshMyAudio();

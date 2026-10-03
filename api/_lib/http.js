@@ -17,7 +17,7 @@ export function json(data, init = {})
   });
 }
 
-export function error(status, message)
+export function error(status, message, headers = {})
 {
-  return json({ error: message }, { status });
+  return json({ error: message }, { status, headers });
 }
